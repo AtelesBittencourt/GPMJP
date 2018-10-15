@@ -1,0 +1,26 @@
+		WorkerRush
+ESTRARÉGIA BÁSICA
+	->Se houver mais de 1 worker, manda eles atacarem o inimigo mais próximo
+	->Se tiver uma base, treine workers sem parar
+	->Se tiver algum worker, se necessário, colete recursos
+
+		LightRush
+ESTRATÉGIA BÁSICA
+	->Se tiver um light, mande ele atacar o inimigo mais próximo
+	->Se tiver uma base, treinar workers até haver 1
+	->Se tiver barracas, treinar lights
+	->Se tiver workers,se necessário, construa bases, barracas e colete recursos
+
+		HeavyRush
+ESTRATÉGIA BÁSICA
+	->Se tiver um heavy, mande ele atacar o inimigo mais próximo
+	->Se tiver uma base, treinar workers até haver 1
+	->Se tiver barracas, treinar heavys
+	->Se tiver workers,se necessário, construa bases, barracas e colete recursos
+
+		RangedRush
+ESTRATÉGIA BÁSICA
+	->Se tiver um ranged, mande ele atacar o inimigo mais próximo
+	->Se tiver uma base, treinar workers até haver 1
+	->Se tiver barracas, treinar ranged
+	->Se tiver workers,se necessário, construa bases, barracas e colete recursos
