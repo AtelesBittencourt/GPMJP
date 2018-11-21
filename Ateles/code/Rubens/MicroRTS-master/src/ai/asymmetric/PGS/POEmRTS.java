@@ -5,6 +5,7 @@
  */
 package ai.asymmetric.PGS;
 
+import ai.RandomBiasedAI;
 import ai.abstraction.combat.Cluster;
 import ai.abstraction.combat.KitterDPS;
 import ai.abstraction.combat.NOKDPS;
@@ -23,6 +24,15 @@ import ai.core.InterruptibleAI;
 import ai.core.ParameterSpecification;
 import ai.evaluation.EvaluationFunction;
 import ai.evaluation.SimpleSqrtEvaluationFunction3;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -35,6 +45,7 @@ import rts.PlayerAction;
 import rts.UnitAction;
 import rts.units.Unit;
 import rts.units.UnitTypeTable;
+import util.Pair;
 
 /**
  *
@@ -58,6 +69,18 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
 
     GameState gs_to_start_from = null;
     int playerForThisComputation;
+    
+    ArrayList<Individuo> pop;
+    int tamPop = 0;
+    double mutate = 0;
+    double crossover = 0;
+    int elite = 2;
+    int rodada = 3;
+    
+    AI randAI = null;
+    HashMap<String, PlayerAction> cache;
+    
+    int qtdSumPlayout = 2;
 
     public POEmRTS(UnitTypeTable utt) {
         this(100, -1, 200, 1, 2,
@@ -79,6 +102,14 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
         pf = a_pf;
         defaultScript = new POLightRush(a_utt);
         scripts = new ArrayList<>();
+        
+        pop = new ArrayList();
+        tamPop = 10;
+        mutate = 0.1;
+        crossover = 0.2;
+        
+        randAI = new RandomBiasedAI(a_utt);
+        
         buildPortfolio();
     }
 
@@ -114,9 +145,21 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
         if (gs.canExecuteAnyAction(player)) {
             
             //evalPortfolio(gs.getPhysicalGameState().getHeight());
-            startNewComputation(player, gs);
-            return getBestActionSoFar();
+            if(rodada < 3){
+                Individuo ret = (Individuo) pop.get(rodada);
+                rodada++;
+                return getFinalAction(ret.getGen());
+            } else{
+                rodada = 1;
+                pop = new ArrayList();
+                startNewComputation(player, gs);
+                return getBestActionSoFar();
+            }
+            //System.out.println("issooooooooooooo");
+            
+            
         } else {
+            //System.out.println("?????????????");
             return new PlayerAction();
         }
 
@@ -124,46 +167,204 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
 
     @Override
     public PlayerAction getBestActionSoFar() throws Exception {
-
-        //evoluir o quanto der
-        /*AI seedPlayer = getSeedPlayer(playerForThisComputation);
-        AI seedEnemy = getSeedPlayer(1 - playerForThisComputation);
-
-        defaultScript = seedPlayer;
-
-        UnitScriptData currentScriptData = new UnitScriptData(playerForThisComputation);
-        currentScriptData.setSeedUnits(seedPlayer);
-        setAllScripts(playerForThisComputation, currentScriptData, seedPlayer);
-        if( (System.currentTimeMillis()-start_time ) < TIME_BUDGET){
-            currentScriptData = doPortfolioSearch(playerForThisComputation, currentScriptData, seedEnemy);
-        }
-        return getFinalAction(currentScriptData);*/
-        
+        getCache();
         UnitScriptData InitBest = new UnitScriptData(playerForThisComputation);
         InitBest.setSeedUnits(defaultScript);
         setAllScripts(playerForThisComputation, InitBest, defaultScript);
+        initialize(playerForThisComputation, InitBest);
         if( (System.currentTimeMillis()-start_time ) < TIME_BUDGET){
-            InitBest = evolution(playerForThisComputation, InitBest);
+            InitBest = evolution(playerForThisComputation);
         }
         return getFinalAction(InitBest);
     }
     
-    private UnitScriptData evolution(int player, UnitScriptData currentScriptData) throws Exception{
-        Random rand = new Random();
-        SortedSet<Individuo> pop = new TreeSet<>(Comparator.comparing(Individuo::getFitness));
+    private void getCache() throws Exception {
+        for (AI script : scripts) {
+            cache.put(script.toString(), script.getAction(playerForThisComputation, gs_to_start_from));
+        }
+    }
+    
+    protected void initialize(int player, UnitScriptData currentScriptData) throws Exception{
+        //Random rand = new Random();
         AI enemyAI = new POLightRush(utt);
-        double fitness = eval(player, gs_to_start_from, currentScriptData, enemyAI);
-        Individuo init = new Individuo(currentScriptData, fitness);
-        pop.add(init);
-        
-        while(System.currentTimeMillis() < (start_time + (TIME_BUDGET - 10))){
-            for(int i = pop.size(); i<10; i++){
-                int script = rand.nextInt(i);
+        //double fitness = eval(player, gs_to_start_from, currentScriptData, enemyAI);
+        //Individuo init = new Individuo(currentScriptData, fitness);
+        for(int i = pop.size(); i<tamPop; i++){
+            //int script = rand.nextInt(scripts.size());
+            //currentScriptData.setSeedUnits(scripts.get(script));
+            setAllScripts(playerForThisComputation, currentScriptData, defaultScript);
+            double fitness = eval(player, gs_to_start_from, currentScriptData, enemyAI);
+            /*double sum = 0.0;
+            for (int j = 0; j < qtdSumPlayout; j++) {
+                sum += eval(player, gs_to_start_from, currentScriptData, new POLightRush(utt));
+            }
+            double fitness = sum / qtdSumPlayout;*/
+            Individuo init = new Individuo(currentScriptData, fitness);
+            pop.add(init);
+        }
+        pop.sort((o1, o2) -> o1.getFitness().compareTo(o2.getFitness()));
+     }
+    
+    protected ArrayList<Individuo> mutateSemCross(int player) throws Exception{
+        ArrayList<Unit> unitsPlayer = getUnitsPlayer(player);
+        Random rand = new Random();
+        ArrayList<Individuo> filhos = new ArrayList();
+        for(int i = 0; i<tamPop; i++){
+            if(rand.nextDouble() < mutate){
+                AI enemyAI = new POLightRush(utt);
+                int unidade = rand.nextInt(unitsPlayer.size());
+                int script = rand.nextInt(scripts.size());
+                UnitScriptData u = pop.get(i).getGen();
+                u.setUnitScript(unitsPlayer.get(unidade), scripts.get(script));
                 
+                //double fitness = eval(player, gs_to_start_from, u, enemyAI);//eval PGS
+                double fitness = eval(player, gs_to_start_from, u, scripts.get(rand.nextInt(scripts.size())));//eval PGS
+
+                /*double sum = 0.0;
+                for (int j = 0; j < qtdSumPlayout; j++) {
+                    sum += eval(player, gs_to_start_from, u, new POLightRush(utt));
+                }
+                double fitness = sum / qtdSumPlayout;*/
+                Individuo init = new Individuo(u, fitness);
+                filhos.add(init);
+                //pop.get(i).setGen(u);
             }
         }
+        return filhos;
+    }
+    
+    protected ArrayList<Individuo> crossover(int player) throws Exception{
+        Random rand = new Random();
+        ArrayList<Individuo> filhos = new ArrayList();
+        //ArrayList<Unit> unitsPlayer = getUnitsPlayer(player);
+        int tam = pop.size();
+        for(int i = 0; i<tam; i++){
+            if(rand.nextDouble() < crossover){
+                int pos = rand.nextInt(tam);
+                if(pos != i){
+                    ArrayList<Unit> unidades1 = new ArrayList(pop.get(i).getGen().getUnits());
+                    ArrayList<Unit> unidades2 = new ArrayList(pop.get(pos).getGen().getUnits());
+                    int corte = rand.nextInt(unidades1.size());
+                    UnitScriptData aux = new UnitScriptData(playerForThisComputation);
+                    UnitScriptData aux2 = new UnitScriptData(playerForThisComputation);
+                    aux.setSeedUnits(defaultScript);
+                    aux2.setSeedUnits(defaultScript);
+                    aux.reset();
+                    //primeiro filho
+                    for(int uni1 = 0; uni1 < corte; uni1++){
+                        aux.setUnitScript(unidades1.get(uni1), pop.get(i).getGen().getAIUnit(unidades1.get(uni1)));
+                    }
+                    for(int uni2 = corte; uni2 < unidades2.size(); uni2++){
+                        aux.setUnitScript(unidades2.get(uni2), pop.get(i).getGen().getAIUnit(unidades2.get(uni2)));
+                    }
+                    //segundo filho
+                    for(int uni1 = corte; uni1 < unidades1.size(); uni1++){
+                        aux2.setUnitScript(unidades1.get(uni1), pop.get(i).getGen().getAIUnit(unidades1.get(uni1)));
+                    }
+                    for(int uni2 = 0; uni2 < corte; uni2++){
+                        aux2.setUnitScript(unidades1.get(uni2), pop.get(i).getGen().getAIUnit(unidades1.get(uni2)));
+                    }
+                    //System.out.println("unidades1.size():" + unidades1.size());
+                    
+                    double fitness = eval(player, gs_to_start_from, aux, scripts.get(rand.nextInt(scripts.size())));//eval PGS
+                    double fitness2 = eval(player, gs_to_start_from, aux2, scripts.get(rand.nextInt(scripts.size())));//eval PGS
+                    
+                    /*
+                    double sum = 0.0;
+                    double sum2 = 0.0;
+                    for (int j = 0; j < qtdSumPlayout; j++) {
+                        sum += eval(player, gs_to_start_from, aux, new POLightRush(utt));
+                        sum2 += eval(player, gs_to_start_from, aux2, new POLightRush(utt));
+                    }
+                    double fitness = sum / qtdSumPlayout;
+                    double fitness2 = sum2 / qtdSumPlayout;
+                    */
+                    filhos.add(new Individuo(aux, fitness));
+                    filhos.add(new Individuo(aux2, fitness2));
+                }
+            }
+        }
+        return filhos;
+    }
+    
+    private void writeUsingFileWriter(String data) {
+        String arq = "C:\\Users\\Ateles Junior\\Documents\\2018-2\\TCC\\MicroRTS\\logTeste.txt";
+        //File file = new File(arq);
+        //FileWriter fr = null;
         
-        return pop.first().getGen();
+        try {
+            //fr = new FileWriter(file);
+            //fr.write(data);
+            
+            //Files.write(Paths.get("C:\\Users\\Ateles Junior\\Documents\\2018-2\\TCC\\MicroRTS\\logTeste.txt"), (data + "\n").getBytes(UTF_8),StandardOpenOption.CREATE,StandardOpenOption.APPEND);
+            //Files.write(Paths.get("C:\\Users\\Ateles Junior\\Documents\\2018-2\\TCC\\MicroRTS\\logTeste.txt"), (data + System.lineSeparator()).getBytes(UTF_8),StandardOpenOption.CREATE,StandardOpenOption.APPEND);
+            
+            PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(arq, true)));
+            for (Individuo pop1 : pop) {
+                for(Unit u : pop1.getGen().getUnits()){
+                    out.write(u.toString() + ": " + pop1.getGen().getAIUnit(u).toString() + " / ");
+                }
+                out.println();
+            }
+            out.println("aaaa");
+            out.flush();
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    protected void selectSemElit(ArrayList<Individuo> filhos) throws Exception{
+        pop.addAll(filhos);
+        pop.sort((o1, o2) -> o1.getFitness().compareTo(o2.getFitness()));
+        int tam = pop.size();
+        if(tam > tamPop){
+            tam--;
+            while(tam >= tamPop){
+                pop.remove(tam);
+                tam--;
+            }
+        }
+        writeUsingFileWriter("aaaaaaaaa");
+    }
+    
+    protected void selectComElit(ArrayList<Individuo> filhos) throws Exception{
+        pop.sort((o1, o2) -> o1.getFitness().compareTo(o2.getFitness()));
+        filhos.sort((o1, o2) -> o1.getFitness().compareTo(o2.getFitness()));
+        int i = elite;
+        int j = 0;
+        int tamFilhos = filhos.size();
+        while(i < tamPop && j < tamFilhos){
+            pop.set(i, filhos.get(j));
+            i++; j++;
+        }
+        writeUsingFileWriter("aaaaaaaaa");
+    }
+    
+    private UnitScriptData evolution(int player) throws Exception{
+        Random rand = new Random();
+        
+        while(System.currentTimeMillis() < (start_time + (TIME_BUDGET - 10))){
+            ArrayList<Individuo> filhos = new ArrayList();
+            //selectSemElit(mutateSemCross(player));//Mutacao sem crossover e sem elitismo
+            filhos.addAll(mutateSemCross(player));
+            filhos.addAll(crossover(player));
+            selectComElit(filhos);//Mutacao sem crossover e com elitismo
+        }
+        
+        Individuo ret = (Individuo) pop.get(0);
+        return ret.getGen();
+    }
+    
+    private void setAllScripts(int playerForThisComputation, UnitScriptData currentScriptData, AI seedPlayer) {
+        Random rand = new Random();
+        currentScriptData.reset();
+        for (Unit u : gs_to_start_from.getUnits()) {
+            if (u.getPlayer() == playerForThisComputation) {
+                //currentScriptData.setUnitScript(u, seedPlayer);
+                currentScriptData.setUnitScript(u, scripts.get(rand.nextInt(scripts.size())));
+            }
+        }
     }
 
     /*protected AI getSeedPlayer(int player) throws Exception {
@@ -240,6 +441,55 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
 
         return evaluation.evaluate(player, 1 - player, gs2);
     }
+    //Usando aleatoriedade
+    public double eval1(int player, GameState gs, UnitScriptData uScriptPlayer, AI aiEnemy) throws Exception {
+        //AI ai1 = defaultScript.clone();
+        AI ai2 = aiEnemy.clone();
+        ai2.reset();
+        GameState gs2 = gs.clone();
+        //actions default
+        //gs2.issue(uScriptPlayer.getAction(player, gs2));
+        //gs2.issue(ai2.getAction(1 - player, gs2));
+        gs2.issue(getActionsUScript(player, uScriptPlayer, gs2));
+        gs2.issue(ai2.getAction(1 - player, gs2));
+        int timeLimit = gs2.getTime() + LOOKAHEAD;
+        boolean gameover = false;
+        while (!gameover && gs2.getTime() < timeLimit) {
+            if (gs2.isComplete()) {
+                gameover = gs2.cycle();
+            } else {
+                gs2.issue(randAI.getAction(player, gs2));
+                gs2.issue(randAI.getAction(1 - player, gs2));
+            }
+        }
+
+        return evaluation.evaluate(player, 1 - player, gs2);
+    }
+    
+    private PlayerAction getActionsUScript(int player, UnitScriptData uScriptPlayer, GameState gs2) {
+        PlayerAction temp = new PlayerAction();
+        for (Unit u : gs2.getUnits()) {
+            if (u.getPlayer() == player) {
+                String sAI = uScriptPlayer.getAIUnit(u).toString();
+
+                UnitAction uAt = getUnitAction(u, cache.get(sAI));
+                if(uAt != null){
+                    temp.addUnitAction(u, uAt);
+                }
+            }
+        }
+
+        return temp;
+    }
+    
+    private UnitAction getUnitAction(Unit u, PlayerAction get) {
+        for (Pair<Unit, UnitAction> tmp : get.getActions()) {
+            if (tmp.m_a.getID() == u.getID()) {
+                return tmp.m_b;
+            }
+        }
+        return null;
+    }
 
     @Override
     public AI clone() {
@@ -313,20 +563,12 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
         nplayouts = 0;
         _startTime = gs.getTime();
         start_time = System.currentTimeMillis();
+        this.cache = new HashMap<>();
     }
 
     @Override
     public void computeDuringOneGameFrame() throws Exception {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    private void setAllScripts(int playerForThisComputation, UnitScriptData currentScriptData, AI seedPlayer) {
-        currentScriptData.reset();
-        for (Unit u : gs_to_start_from.getUnits()) {
-            if (u.getPlayer() == playerForThisComputation) {
-                currentScriptData.setUnitScript(u, seedPlayer);
-            }
-        }
     }
 
     private UnitScriptData doPortfolioSearch(int player, UnitScriptData currentScriptData, AI seedEnemy) throws Exception {
@@ -391,7 +633,7 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
         }
         
         
-
+        //writeUsingFileWriter("aaaaaaaaa");
         return pAction;
     }
 

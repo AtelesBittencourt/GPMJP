@@ -8,7 +8,9 @@ import ai.core.AI;
 import ai.*;
 import ai.abstraction.WorkerRush;
 import ai.abstraction.pathfinding.BFSPathFinding;
+import ai.asymmetric.PGS.PGSSCriptChoiceRandom;
 import ai.asymmetric.PGS.PGSmRTS;
+import ai.asymmetric.PGS.POEmRTS;
 import ai.asymmetric.SSS.SSSmRTS;
 import ai.mcts.naivemcts.NaiveMCTS;
 import ai.scv.SCV;
@@ -28,8 +30,10 @@ import util.XMLWriter;
 public class GameVisualSimulationTest {
     public static void main(String args[]) throws Exception {
         UnitTypeTable utt = new UnitTypeTable();
-        //PhysicalGameState pgs = PhysicalGameState.load("maps/16x16/basesWorkers16x16.xml", utt);
-        PhysicalGameState pgs = PhysicalGameState.load("maps/16x16/melee16x16Mixed8.xml", utt);
+        PhysicalGameState pgs = PhysicalGameState.load("maps/16x16/basesWorkers16x16.xml", utt);
+        //PhysicalGameState pgs = PhysicalGameState.load("maps/16x16/melee16x16Mixed8.xml", utt);
+        //PhysicalGameState pgs = PhysicalGameState.load("maps/32x32/basesWorkersBarracks32x32.xml", utt);
+
 
         //PhysicalGameState pgs = PhysicalGameState.load("maps/BroodWar/(4)Fortress.scxA.xml", utt);
 //        PhysicalGameState pgs = MapGenerator.basesWorkers8x8Obstacle();
@@ -39,8 +43,11 @@ public class GameVisualSimulationTest {
         int PERIOD = 20;
         boolean gameover = false;
         
-        AI ai1 = new PGSmRTS(utt);
-        AI ai2 = new SSSmRTS(utt);
+        //AI ai1 = new PGSmRTS(utt);
+        AI ai1 = new POEmRTS(utt);
+        //AI ai2 = new SSSmRTS(utt);
+        AI ai2 = new PGSmRTS(utt);
+        //AI ai2 = new PGSSCriptChoiceRandom(utt);
 
         JFrame w = PhysicalGameStatePanel.newVisualizer(gs,640,640,false,PhysicalGameStatePanel.COLORSCHEME_BLACK);
 //        JFrame w = PhysicalGameStatePanel.newVisualizer(gs,640,640,false,PhysicalGameStatePanel.COLORSCHEME_WHITE);
@@ -48,6 +55,7 @@ public class GameVisualSimulationTest {
         long nextTimeToUpdate = System.currentTimeMillis() + PERIOD;
         do{
             if (System.currentTimeMillis()>=nextTimeToUpdate) {
+                    
                 PlayerAction pa1 = ai1.getAction(0, gs);
                 PlayerAction pa2 = ai2.getAction(1, gs);
                 gs.issueSafe(pa1);
@@ -67,7 +75,7 @@ public class GameVisualSimulationTest {
         }while(!gameover && gs.getTime()<MAXCYCLES);
         ai1.gameOver(gs.winner());
         ai2.gameOver(gs.winner());
-        
+        System.out.println("Ganhador: " + gs.winner());
         System.out.println("Game Over");
     }    
 }

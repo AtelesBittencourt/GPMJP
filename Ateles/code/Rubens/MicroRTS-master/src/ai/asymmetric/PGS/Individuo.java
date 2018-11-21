@@ -15,25 +15,30 @@ import java.util.List;
  */
 public class Individuo {
     UnitScriptData gen = null;
-    double fitness = 0;
+    Double fitness = 0.0;
     
     public Individuo(){
     }
     
-    public Individuo(UnitScriptData g, double fit){
-        gen = g.clone();
-        fitness = fit;
+    public Individuo(UnitScriptData g, Double fit){
+        this.gen = g.clone();
+        this.fitness = fit;
     }
     
-    public double getFitness(){
-        return fitness;
+    public Double getFitness(){
+        return this.fitness;
     }
     
     public UnitScriptData getGen(){
-        return gen.clone();
+        return this.gen.clone();
     }
     
     public void setFitness(double fit){
         this.fitness = fit;
+    }
+    
+    public void setGen(UnitScriptData g){
+        this.gen = null;
+        this.gen = g.clone();
     }
 }
