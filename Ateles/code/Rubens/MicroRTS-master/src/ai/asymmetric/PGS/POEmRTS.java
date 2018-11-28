@@ -23,7 +23,7 @@ import ai.core.AIWithComputationBudget;
 import ai.core.InterruptibleAI;
 import ai.core.ParameterSpecification;
 import ai.evaluation.EvaluationFunction;
-import ai.evaluation.SimpleSqrtEvaluationFunction3;
+import ai.evaluation.LTD2;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -84,7 +84,7 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
 
     public POEmRTS(UnitTypeTable utt) {
         this(100, -1, 200, 1, 2,
-                new SimpleSqrtEvaluationFunction3(),
+                new LTD2(),
                 //new SimpleSqrtEvaluationFunction2(),
                 //new LanchesterEvaluationFunction(),
                 utt,
@@ -144,7 +144,6 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
     public PlayerAction getAction(int player, GameState gs) throws Exception {
         if (gs.canExecuteAnyAction(player)) {
             
-            //evalPortfolio(gs.getPhysicalGameState().getHeight());
             if(rodada < 3){
                 Individuo ret = (Individuo) pop.get(rodada);
                 rodada++;
@@ -175,6 +174,7 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
         if( (System.currentTimeMillis()-start_time ) < TIME_BUDGET){
             InitBest = evolution(playerForThisComputation);
         }
+        writeUsingFileWriter("");
         return getFinalAction(InitBest);
     }
     
@@ -209,20 +209,27 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
         ArrayList<Unit> unitsPlayer = getUnitsPlayer(player);
         Random rand = new Random();
         ArrayList<Individuo> filhos = new ArrayList();
+        //System.out.println("Rand: " + rand.nextDouble());
+        
         for(int i = 0; i<tamPop; i++){
-            if(rand.nextDouble() < mutate){
+            double vai = rand.nextDouble();
+            //System.out.println("vai: " + vai);
+            if(vai < mutate){
+                //System.out.println("foi");
                 AI enemyAI = new POLightRush(utt);
                 int unidade = rand.nextInt(unitsPlayer.size());
                 int script = rand.nextInt(scripts.size());
+                //System.out.println("script: " + script);
                 UnitScriptData u = pop.get(i).getGen();
                 u.setUnitScript(unitsPlayer.get(unidade), scripts.get(script));
                 
-                //double fitness = eval(player, gs_to_start_from, u, enemyAI);//eval PGS
-                double fitness = eval(player, gs_to_start_from, u, scripts.get(rand.nextInt(scripts.size())));//eval PGS
+                double fitness = eval(player, gs_to_start_from, u, enemyAI);//eval PGS
+                //double fitness = eval(player, gs_to_start_from, u, scripts.get(rand.nextInt(scripts.size())));//eval PGS
 
                 /*double sum = 0.0;
                 for (int j = 0; j < qtdSumPlayout; j++) {
                     sum += eval(player, gs_to_start_from, u, new POLightRush(utt));
+                    //sum += eval(player, gs_to_start_from, u, scripts.get(rand.nextInt(scripts.size())));
                 }
                 double fitness = sum / qtdSumPlayout;*/
                 Individuo init = new Individuo(u, fitness);
@@ -239,7 +246,8 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
         //ArrayList<Unit> unitsPlayer = getUnitsPlayer(player);
         int tam = pop.size();
         for(int i = 0; i<tam; i++){
-            if(rand.nextDouble() < crossover){
+            double vai = rand.nextDouble();
+            if(vai < crossover){
                 int pos = rand.nextInt(tam);
                 if(pos != i){
                     ArrayList<Unit> unidades1 = new ArrayList(pop.get(i).getGen().getUnits());
@@ -266,9 +274,11 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
                     }
                     //System.out.println("unidades1.size():" + unidades1.size());
                     
-                    double fitness = eval(player, gs_to_start_from, aux, scripts.get(rand.nextInt(scripts.size())));//eval PGS
-                    double fitness2 = eval(player, gs_to_start_from, aux2, scripts.get(rand.nextInt(scripts.size())));//eval PGS
+                    //double fitness = eval(player, gs_to_start_from, aux, scripts.get(rand.nextInt(scripts.size())));//eval PGS
+                    //double fitness2 = eval(player, gs_to_start_from, aux2, scripts.get(rand.nextInt(scripts.size())));//eval PGS
                     
+                    double fitness = eval(player, gs_to_start_from, aux, new POLightRush(utt));//eval PGS
+                    double fitness2 = eval(player, gs_to_start_from, aux2, new POLightRush(utt));//eval PGS
                     /*
                     double sum = 0.0;
                     double sum2 = 0.0;
@@ -277,8 +287,8 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
                         sum2 += eval(player, gs_to_start_from, aux2, new POLightRush(utt));
                     }
                     double fitness = sum / qtdSumPlayout;
-                    double fitness2 = sum2 / qtdSumPlayout;
-                    */
+                    double fitness2 = sum2 / qtdSumPlayout;*/
+                    
                     filhos.add(new Individuo(aux, fitness));
                     filhos.add(new Individuo(aux2, fitness2));
                 }
@@ -300,13 +310,20 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
             //Files.write(Paths.get("C:\\Users\\Ateles Junior\\Documents\\2018-2\\TCC\\MicroRTS\\logTeste.txt"), (data + System.lineSeparator()).getBytes(UTF_8),StandardOpenOption.CREATE,StandardOpenOption.APPEND);
             
             PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(arq, true)));
-            for (Individuo pop1 : pop) {
-                for(Unit u : pop1.getGen().getUnits()){
-                    out.write(u.toString() + ": " + pop1.getGen().getAIUnit(u).toString() + " / ");
+            if(data == "aaaaaaaaa"){
+                for (Individuo pop1 : pop) {
+                    for(Unit u : pop1.getGen().getUnits()){
+                        out.write(u.toString() + ": " + pop1.getGen().getAIUnit(u).toString() + " / ");
+                    }
+                    out.println();
                 }
+                out.println("aaaa");
+            } else {
+                out.println();
+                out.println("fim da geração");
                 out.println();
             }
-            out.println("aaaa");
+            
             out.flush();
             out.close();
         } catch (IOException e) {
@@ -325,7 +342,7 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
                 tam--;
             }
         }
-        writeUsingFileWriter("aaaaaaaaa");
+        //writeUsingFileWriter("aaaaaaaaa");
     }
     
     protected void selectComElit(ArrayList<Individuo> filhos) throws Exception{
@@ -338,7 +355,8 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
             pop.set(i, filhos.get(j));
             i++; j++;
         }
-        writeUsingFileWriter("aaaaaaaaa");
+        pop.sort((o1, o2) -> o1.getFitness().compareTo(o2.getFitness()));
+        //writeUsingFileWriter("aaaaaaaaa");
     }
     
     private UnitScriptData evolution(int player) throws Exception{
@@ -346,10 +364,24 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
         
         while(System.currentTimeMillis() < (start_time + (TIME_BUDGET - 10))){
             ArrayList<Individuo> filhos = new ArrayList();
-            //selectSemElit(mutateSemCross(player));//Mutacao sem crossover e sem elitismo
+            //selectSemElit(mutateSemCross(player));//Mutacao sem elitismo
+            if (System.currentTimeMillis() >= (start_time + (TIME_BUDGET - 10))) {
+                    Individuo ret = (Individuo) pop.get(0);
+                    return ret.getGen();
+                }
             filhos.addAll(mutateSemCross(player));
+            if (System.currentTimeMillis() >= (start_time + (TIME_BUDGET - 10))) {
+                    Individuo ret = (Individuo) pop.get(0);
+                    return ret.getGen();
+                }
             filhos.addAll(crossover(player));
-            selectComElit(filhos);//Mutacao sem crossover e com elitismo
+            if (System.currentTimeMillis() >= (start_time + (TIME_BUDGET - 10))) {
+                    Individuo ret = (Individuo) pop.get(0);
+                    return ret.getGen();
+                }
+            //selectComElit(filhos);//Mutacao com elitismo
+            selectSemElit(mutateSemCross(player));//Mutacao sem elitismo
+
         }
         
         Individuo ret = (Individuo) pop.get(0);
@@ -426,7 +458,7 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
         GameState gs2 = gs.clone();
         //ai1.reset();
         ai2.reset();
-        int timeLimit = gs2.getTime() + LOOKAHEAD;
+        int timeLimit = gs2.getTime() + LOOKAHEAD/10;
         boolean gameover = false;
         while (!gameover && gs2.getTime() < timeLimit) {
             if (gs2.isComplete()) {
@@ -452,7 +484,7 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
         //gs2.issue(ai2.getAction(1 - player, gs2));
         gs2.issue(getActionsUScript(player, uScriptPlayer, gs2));
         gs2.issue(ai2.getAction(1 - player, gs2));
-        int timeLimit = gs2.getTime() + LOOKAHEAD;
+        int timeLimit = gs2.getTime() + LOOKAHEAD / 10;
         boolean gameover = false;
         while (!gameover && gs2.getTime() < timeLimit) {
             if (gs2.isComplete()) {
@@ -505,7 +537,7 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
         parameters.add(new ParameterSpecification("PlayoutLookahead", int.class, 100));
         parameters.add(new ParameterSpecification("I", int.class, 1));
         parameters.add(new ParameterSpecification("R", int.class, 1));
-        parameters.add(new ParameterSpecification("EvaluationFunction", EvaluationFunction.class, new SimpleSqrtEvaluationFunction3()));
+        parameters.add(new ParameterSpecification("EvaluationFunction", EvaluationFunction.class, new LTD2()));
         parameters.add(new ParameterSpecification("PathFinding", PathFinding.class, new AStarPathFinding()));
 
         return parameters;
