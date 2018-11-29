@@ -23,7 +23,8 @@ import ai.core.AIWithComputationBudget;
 import ai.core.InterruptibleAI;
 import ai.core.ParameterSpecification;
 import ai.evaluation.EvaluationFunction;
-import ai.evaluation.LTD2;
+//import ai.evaluation.EvalSelection;
+import ai.evaluation.LTD2_2;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -84,8 +85,9 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
 
     public POEmRTS(UnitTypeTable utt) {
         this(100, -1, 200, 1, 2,
-                new LTD2(),
-                //new SimpleSqrtEvaluationFunction2(),
+                //new SimpleSqrtEvaluationFunction3(),
+                new LTD2_2(),
+                //new EvalSelection(),
                 //new LanchesterEvaluationFunction(),
                 utt,
                 new AStarPathFinding());
@@ -537,7 +539,8 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
         parameters.add(new ParameterSpecification("PlayoutLookahead", int.class, 100));
         parameters.add(new ParameterSpecification("I", int.class, 1));
         parameters.add(new ParameterSpecification("R", int.class, 1));
-        parameters.add(new ParameterSpecification("EvaluationFunction", EvaluationFunction.class, new LTD2()));
+        parameters.add(new ParameterSpecification("EvaluationFunction", EvaluationFunction.class, new LTD2_2()));
+        //parameters.add(new ParameterSpecification("EvaluationFunction", EvaluationFunction.class, new EvalSelection()));
         parameters.add(new ParameterSpecification("PathFinding", PathFinding.class, new AStarPathFinding()));
 
         return parameters;

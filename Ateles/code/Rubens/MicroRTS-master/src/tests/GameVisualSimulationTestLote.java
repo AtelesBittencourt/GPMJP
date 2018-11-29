@@ -36,9 +36,9 @@ public class GameVisualSimulationTestLote {
         String arq = "C:\\Users\\Ateles Junior\\Documents\\2018-2\\TCC\\MicroRTS\\TesteLongo.txt";
         for(int vez = 0; vez < 100; vez++){
             UnitTypeTable utt = new UnitTypeTable();
-            //PhysicalGameState pgs = PhysicalGameState.load("maps/16x16/basesWorkers16x16.xml", utt);
+            PhysicalGameState pgs = PhysicalGameState.load("maps/16x16/basesWorkers16x16.xml", utt);
             //PhysicalGameState pgs = PhysicalGameState.load("maps/16x16/melee16x16Mixed8.xml", utt);
-            PhysicalGameState pgs = PhysicalGameState.load("maps/32x32/basesWorkersBarracks32x32.xml", utt);
+            //PhysicalGameState pgs = PhysicalGameState.load("maps/32x32/basesWorkersBarracks32x32.xml", utt);
 
 
             //PhysicalGameState pgs = PhysicalGameState.load("maps/BroodWar/(4)Fortress.scxA.xml", utt);

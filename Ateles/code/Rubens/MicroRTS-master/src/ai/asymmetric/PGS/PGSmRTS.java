@@ -23,7 +23,7 @@ import ai.core.InterruptibleAI;
 import ai.core.ParameterSpecification;
 import ai.evaluation.EvaluationFunction;
 //import ai.evaluation.SimpleSqrtEvaluationFunction3;
-import ai.evaluation.LTD2;
+import ai.evaluation.LTD2_2;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -62,7 +62,7 @@ public class PGSmRTS extends AIWithComputationBudget implements InterruptibleAI 
                 //new SimpleSqrtEvaluationFunction3(),
                 //new SimpleSqrtEvaluationFunction2(),
                 //new LanchesterEvaluationFunction(),
-                new LTD2(),
+                new LTD2_2(),
                 utt,
                 new AStarPathFinding());
     }
@@ -229,7 +229,7 @@ public class PGSmRTS extends AIWithComputationBudget implements InterruptibleAI 
         parameters.add(new ParameterSpecification("I", int.class, 1));
         parameters.add(new ParameterSpecification("R", int.class, 1));
         //parameters.add(new ParameterSpecification("EvaluationFunction", EvaluationFunction.class, new SimpleSqrtEvaluationFunction3()));
-        parameters.add(new ParameterSpecification("EvaluationFunction", EvaluationFunction.class, new LTD2()));
+        parameters.add(new ParameterSpecification("EvaluationFunction", EvaluationFunction.class, new LTD2_2()));
         parameters.add(new ParameterSpecification("PathFinding", PathFinding.class, new AStarPathFinding()));
 
         return parameters;
