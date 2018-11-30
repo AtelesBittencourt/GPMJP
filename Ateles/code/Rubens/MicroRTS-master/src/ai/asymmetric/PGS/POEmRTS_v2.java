@@ -24,7 +24,7 @@ import ai.core.InterruptibleAI;
 import ai.core.ParameterSpecification;
 import ai.evaluation.EvaluationFunction;
 //import ai.evaluation.EvalSelection;
-import ai.evaluation.LTD2_2;
+import ai.evaluation.LTD2;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -52,7 +52,7 @@ import util.Pair;
  *
  * @author ateles
  */
-public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI {
+public class POEmRTS_v2 extends AIWithComputationBudget implements InterruptibleAI {
 
     int LOOKAHEAD = 200;
     int I = 1;  // number of iterations for improving a given player
@@ -83,17 +83,17 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
     
     int qtdSumPlayout = 2;
 
-    public POEmRTS(UnitTypeTable utt) {
+    public POEmRTS_v2(UnitTypeTable utt) {
         this(100, -1, 200, 1, 2,
                 //new SimpleSqrtEvaluationFunction3(),
-                new LTD2_2(),
+                new LTD2(),
                 //new EvalSelection(),
                 //new LanchesterEvaluationFunction(),
                 utt,
                 new AStarPathFinding());
     }
 
-    public POEmRTS(int time, int max_playouts, int la, int a_I, int a_R, EvaluationFunction e, UnitTypeTable a_utt, PathFinding a_pf) {
+    public POEmRTS_v2(int time, int max_playouts, int la, int a_I, int a_R, EvaluationFunction e, UnitTypeTable a_utt, PathFinding a_pf) {
         super(time, max_playouts);
 
         LOOKAHEAD = la;
@@ -527,7 +527,7 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
 
     @Override
     public AI clone() {
-        return new POEmRTS(TIME_BUDGET, ITERATIONS_BUDGET, LOOKAHEAD, I, R, evaluation, utt, pf);
+        return new POEmRTS_v2(TIME_BUDGET, ITERATIONS_BUDGET, LOOKAHEAD, I, R, evaluation, utt, pf);
     }
 
     @Override
@@ -539,7 +539,7 @@ public class POEmRTS extends AIWithComputationBudget implements InterruptibleAI 
         parameters.add(new ParameterSpecification("PlayoutLookahead", int.class, 100));
         parameters.add(new ParameterSpecification("I", int.class, 1));
         parameters.add(new ParameterSpecification("R", int.class, 1));
-        parameters.add(new ParameterSpecification("EvaluationFunction", EvaluationFunction.class, new LTD2_2()));
+        parameters.add(new ParameterSpecification("EvaluationFunction", EvaluationFunction.class, new LTD2()));
         //parameters.add(new ParameterSpecification("EvaluationFunction", EvaluationFunction.class, new EvalSelection()));
         parameters.add(new ParameterSpecification("PathFinding", PathFinding.class, new AStarPathFinding()));
 

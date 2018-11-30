@@ -31,9 +31,9 @@ public class GameVisualSimulationTest {
     public static void main(String args[]) throws Exception {
         UnitTypeTable utt = new UnitTypeTable();
         PhysicalGameState pgs = PhysicalGameState.load("maps/16x16/basesWorkers16x16.xml", utt);
-        //PhysicalGameState pgs = PhysicalGameState.load("maps/16x16/melee16x16Mixed8.xml", utt);
-        //PhysicalGameState pgs = PhysicalGameState.load("maps/32x32/basesWorkersBarracks32x32.xml", utt);
-
+        //PhysicalGameState pgs = PhysicalGameState.load("maps/32x32/basesWorkers32x32A.xml", utt);
+        //PhysicalGameState pgs = PhysicalGameState.load("maps/BroodWar/(4)CircuitBreaker.scxA.xml", utt);
+        //PhysicalGameState pgs = PhysicalGameState.load("maps/BroodWar/(4)Andromeda.scxA.xml", utt);
 
         //PhysicalGameState pgs = PhysicalGameState.load("maps/BroodWar/(4)Fortress.scxA.xml", utt);
 //        PhysicalGameState pgs = MapGenerator.basesWorkers8x8Obstacle();
@@ -43,10 +43,12 @@ public class GameVisualSimulationTest {
         int PERIOD = 20;
         boolean gameover = false;
         
+        AI ai1;
+        AI ai2;
         //AI ai1 = new PGSmRTS(utt);
-        AI ai1 = new POEmRTS(utt);
+        ai1 = new POEmRTS(utt);
         //AI ai2 = new SSSmRTS(utt);
-        AI ai2 = new PGSmRTS(utt);
+        ai2 = new PGSmRTS(utt);
         //AI ai2 = new PGSSCriptChoiceRandom(utt);
 
         JFrame w = PhysicalGameStatePanel.newVisualizer(gs,640,640,false,PhysicalGameStatePanel.COLORSCHEME_BLACK);
